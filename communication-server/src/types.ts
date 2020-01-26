@@ -3,23 +3,25 @@ import WebSocket from 'ws';
 export enum InboundMessageTypes {
     CONNECT_PI = 'CONNECT_PI',
     CONNECT_WEB_CLIENT = 'CONNECT_WEB_CLIENT',
+    UPDATE_PI_USERS = 'UPDATE_PI_USERS',
     AUTHORIZE_CLIENT = 'AUTHORIZE_CLIENT',
     CREATE_PI_USER = 'CREATE_PI_USER',
     REMOVE_PI_USER = 'REMOVE_PI_USER',
-    PI_ERROR = 'PI_ERROR',
+    OK_STATUS = 'OK_STATUS',
+    ERROR_STATUS = 'ERROR_STATUS',
 }
 
 export enum OutboundMessageTypes {
-    BAD_PROTOCOL = 'BAD_PROTOCOL',
-    BAD_AUTHORIZATION = 'BAD_AUTHORIZATION',
     CREATE_PI_USER = 'CREATE_PI_USER',
     REMOVE_PI_USER = 'REMOVE_PI_USER',
-    SEND_PI_DEVICES = 'SEND_PI_DEVICES',
-    SEND_PI_USERS = 'SEND_PI_USERS',
+    UPDATE_PI_DEVICES = 'UPDATE_PI_DEVICES',
+    UPDATE_PI_USERS = 'UPDATE_PI_USERS',
+    OK_STATUS = 'OK_STATUS',
+    ERROR_STATUS = 'ERROR_STATUS',
 }
 
 export interface User {
-    id?: number; 
+    id?: number;
     passport: string;
     firstname: string;
     secondname: string;
@@ -27,29 +29,43 @@ export interface User {
     image?: string; // base64 encoded jpeg
 }
 
-export interface ConnectPIPayload {
+export interface WebClient {
+    id: number;
+    socket: WebSocket;
+    connectedPIDevices: number[];
+}
+
+export interface PIDevice {
+    id: number;
+    pin: number;
+    name: string;
+    users: User[];
+    socket: WebSocket;
+}
+
+export interface ConnectPIPayload { // InboundMessageTypes.CONNECT_PI
     name: string;
     pin: number;
+}
+
+export interface UpdatePIUsersPayload { // InboundMessageTypes.UPDATE_PI_USERS (without deviceID), // OutboundMessageTypes.UPDATE_PI_USERS
+    deviceID?: number;
     users: User[];
 }
 
-export interface AuthorizeClientPayload {
+export interface AuthorizeClientPayload { // InboundMessageTypes.AUTHORIZE_CLIENT
     deviceID: number;
     pin: number;
 }
 
-export interface CreatePIUserPayload {
+export interface CreatePIUserPayload { // InboundMessageTypes.CREATE_PI_USER, // OutboundMessageTypes.CREATE_PI_USER (without deviceID)
     deviceID?: number;
     user: User;
 }
 
-export interface RemovePIUserPayload {
+export interface RemovePIUserPayload { // InboundMessageTypes.REMOVE_PI_USER, // OutboundMessageTypes.REMOVE_PI_USER (without deviceID)
     deviceID?: number;
     userID: number;
-}
-
-export interface PIErrorPayload {
-    error: string;
 }
 
 export interface InboundMessage<PayloadType> {
@@ -57,16 +73,11 @@ export interface InboundMessage<PayloadType> {
     payload: PayloadType;
 }
 
-export interface SendPIDevicesPayload {
+export interface UpdatePIDevicesPayload { // OutboundMessageTypes.UPDATE_PI_DEVICES
     devices: {
         id: number;
         name: string;
     }[];
-}
-
-export interface SendPIUsersPayload {
-    id: number;
-    users: User[];
 }
 
 export interface OutboundMessage<PayloadType> {
@@ -74,17 +85,10 @@ export interface OutboundMessage<PayloadType> {
     payload: PayloadType;
 }
 
-
-export interface RegisteredPIInstance {
-    id: number;
-    pin: number;
-    name: string;
-    users: User[];
-    socket: WebSocket;
+export interface OKStatusPayload { // InboundMessageTypes.OK_STATUS (for: OutboundMessageTypes), // OutboundMessageTypes.OK_STATUS (for: InboundMessageTypes)
+    for: InboundMessageTypes | OutboundMessageTypes;
 }
 
-export interface RegisteredWebClient {
-    id: number;
-    socket: WebSocket;
-    isAuthorizedFor: number[];    
+export interface ErrorStatusPayload {
+    for: InboundMessageTypes | OutboundMessageTypes | 'UNKNOWN';
 }
