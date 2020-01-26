@@ -19,7 +19,7 @@ export enum OutboundMessageTypes {
 }
 
 export interface User {
-    id?: number;
+    id?: number; 
     passport: string;
     firstname: string;
     secondname: string;
@@ -34,17 +34,17 @@ export interface ConnectPIPayload {
 }
 
 export interface AuthorizeClientPayload {
-    PIDeviceID: number;
+    deviceID: number;
     pin: number;
 }
 
 export interface CreatePIUserPayload {
-    PIDeviceID: number;
+    deviceID?: number;
     user: User;
 }
 
 export interface RemovePIUserPayload {
-    PIDeviceID: number;
+    deviceID?: number;
     userID: number;
 }
 
@@ -84,7 +84,7 @@ export interface RegisteredPIInstance {
 }
 
 export interface RegisteredWebClient {
-    isAuthorizedFor: number[];
     id: number;
     socket: WebSocket;
+    isAuthorizedFor: number[];    
 }

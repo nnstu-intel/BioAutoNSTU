@@ -21,6 +21,8 @@ import {
     notifyBadAuthorization,
     sendPIDevices,
     sendPIUsers,
+    sendCreatePIUser,
+    sendRemovePIUser,
 } from './message-responses';
 
 export interface Storage {
@@ -51,6 +53,38 @@ function userIsValid(user: User): boolean {
         && ['number', 'undefined'].includes(typeof (user.id));
 }
 
+function authentificate(
+    socket: WebSocket, 
+    registered: Map<WebSocket, RegisteredPIInstance | RegisteredWebClient>,
+): RegisteredPIInstance | RegisteredWebClient | undefined {
+    return registered.get(socket);
+}
+
+function authentificateWebClient(
+    socket: WebSocket,
+): RegisteredWebClient | undefined {
+    return authentificate(socket, storage.registeredWebClients) as RegisteredWebClient | undefined;
+}
+
+function authentificatePIDevice(
+    socket: WebSocket,
+): RegisteredPIInstance | undefined {
+    return authentificate(socket, storage.registeredPIInstances) as RegisteredPIInstance | undefined;
+}
+
+function authenificatedForPIDevice(
+    socket: WebSocket,
+    deviceID: number,
+): boolean {
+    const registeredWebClient: RegisteredWebClient | undefined = storage
+        .registeredWebClients.get(socket);
+    if (!registeredWebClient) {
+        return false;
+    }
+
+    return registeredWebClient.isAuthorizedFor.includes(deviceID);
+}
+
 function handlePIDeviceConnection(PIDeviceSocket: WebSocket, body: InboundMessage<ConnectPIPayload>): void {
     function notifyWebClients() {
         for (const webClient of storage.registeredWebClients.values()) {
@@ -67,7 +101,7 @@ function handlePIDeviceConnection(PIDeviceSocket: WebSocket, body: InboundMessag
         } = body?.payload;
         
         winston.info(`PI device is trying to register`);
-        if (storage.registeredPIInstances.get(PIDeviceSocket)) {
+        if (authentificatePIDevice(PIDeviceSocket)) {
             notifyBadProtocol(PIDeviceSocket);
             throw new Error('This socket has already been registered');
         }
@@ -108,7 +142,7 @@ function handlePIDeviceConnection(PIDeviceSocket: WebSocket, body: InboundMessag
 
 function handleWebClientConnection(webClientSocket: WebSocket) {
     winston.info(`Web client is trying to register`);
-    if (storage.registeredWebClients.get(webClientSocket)) {
+    if (authentificateWebClient(webClientSocket)) {
         notifyBadProtocol(webClientSocket);
         throw new Error('This client has already been registered');
     }
@@ -136,7 +170,7 @@ function handleWebClientConnection(webClientSocket: WebSocket) {
 function handleWebClientAuthorization(webClientSocket: WebSocket, body: InboundMessage<AuthorizeClientPayload>) {
     try {
         winston.info(`Web client is trying to authorize`);
-        const webClient = storage.registeredWebClients.get(webClientSocket);
+        const webClient = authentificateWebClient(webClientSocket);
         if (!webClient) {
             winston.error('Authorization failed. Client is not registered');
             notifyBadAuthorization(webClientSocket);
@@ -144,10 +178,10 @@ function handleWebClientAuthorization(webClientSocket: WebSocket, body: InboundM
         }
 
         const {
-            PIDeviceID,
+            deviceID,
             pin,
         } = body?.payload;
-        const valid = typeof (PIDeviceID) === 'number' && typeof (pin) === 'number';
+        const valid = typeof (deviceID) === 'number' && typeof (pin) === 'number';
         if (!valid) {
             notifyBadProtocol(webClientSocket);
             throw new Error('Bad protocol. Data checking is failed.');
@@ -155,14 +189,14 @@ function handleWebClientAuthorization(webClientSocket: WebSocket, body: InboundM
 
         const [PIDevice] = Array.from(storage.registeredPIInstances.values())
             .filter((instance: RegisteredPIInstance): boolean => (
-                instance.id === PIDeviceID
+                instance.id === deviceID
             ));
 
         if (!PIDevice || PIDevice.pin !== pin) {
-            winston.warn(`Access denied to the PI device ${PIDeviceID} for the client ${webClient.id}`);
+            winston.warn(`Access denied to the PI device ${deviceID} for the client ${webClient.id}`);
             notifyBadAuthorization(webClientSocket);
         } else {
-            winston.info(`Web client ${webClient.id} was authorized for ID ${PIDeviceID}`);
+            winston.info(`Web client ${webClient.id} was authorized for device ${deviceID}`);
             if (webClient.isAuthorizedFor.includes(PIDevice.id)) {
                 webClient.isAuthorizedFor.push(PIDevice.id);
             }
@@ -174,29 +208,78 @@ function handleWebClientAuthorization(webClientSocket: WebSocket, body: InboundM
     }
 }
 
-function handleCreatePIUser(webClientSocket: WebSocket, body: InboundMessage) {
+function handleCreatePIUser(webClientSocket: WebSocket, body: InboundMessage<CreatePIUserPayload>) {
     try {
-        const payload = body.payload as CreatePIUserPayload;
-        // check client authentification
-        // resend message to pi if okay
-    } catch (error) {
+        winston.info('Web client is trying to create a PI user')
+        const webClient = authentificateWebClient(webClientSocket);
+        if (!webClient) {
+            notifyBadProtocol(webClientSocket);
+            throw new Error('This socket has not been registered yet');
+        }
 
+        const {
+            deviceID,
+            user,
+        } = body?.payload;
+        const valid = typeof (deviceID) === 'number' 
+            && userIsValid(user) 
+            && typeof(user.image) === 'string';
+        if (!valid) {
+            notifyBadProtocol(webClientSocket);
+            throw new Error('Bad protocol. Data checking is failed.');
+        }
+
+        const [PIDevice] = Array.from(storage.registeredPIInstances.values())
+            .filter((instance: RegisteredPIInstance): boolean => (
+                instance.id === deviceID
+            ));
+        if (!authenificatedForPIDevice(webClientSocket, deviceID as number) || !PIDevice) {
+            winston.warn(`Access denied to the PI device ${deviceID} for the client ${webClient.id}`);
+            notifyBadAuthorization(webClientSocket);
+        }
+
+        sendCreatePIUser(PIDevice.socket, user);
+    } catch (error) {
+        winston.error(error.toString());
     }
 }
 
-function handleRemovePIUser(socket: WebSocket, body: InboundMessage<PIRemovePayload>) {
+function handleRemovePIUser(webClientSocket: WebSocket, body: InboundMessage<RemovePIUserPayload>) {
     try {
-        const payload = body.payload as RemovePIUserPayload;
-        // check client authentification
-        // resend message to pi if okay
+        winston.info('Web client is trying to remove a PI user')
+        const webClient = authentificateWebClient(webClientSocket);
+        if (!webClient) {
+            notifyBadProtocol(webClientSocket);
+            throw new Error('This socket has not been registered yet');
+        }
+
+        const {
+            deviceID,
+            userID,
+        } = body?.payload;
+        const valid = typeof (deviceID) === 'number' && typeof(userID) === 'number';
+        if (!valid) {
+            notifyBadProtocol(webClientSocket);
+            throw new Error('Bad protocol. Data checking is failed.');
+        }
+
+        const [PIDevice] = Array.from(storage.registeredPIInstances.values())
+            .filter((instance: RegisteredPIInstance): boolean => (
+                instance.id === deviceID
+            ));
+        if (!authenificatedForPIDevice(webClientSocket, deviceID as number) || !PIDevice) {
+            winston.warn(`Access denied to the PI device ${deviceID} for the client ${webClient.id}`);
+            notifyBadAuthorization(webClientSocket);
+        }
+
+        sendRemovePIUser(PIDevice.socket, userID);
     } catch (error) {
-        
+        winston.error(error.toString());
     }
 }
 
 function handlePIError(socket: WebSocket, body: InboundMessage<PIErrorPayload>) {
     try {
-        const payload = body.payload as PIErrorPayload;
         // check client authentification
         // resend message to pi if okay
     } catch (error) {

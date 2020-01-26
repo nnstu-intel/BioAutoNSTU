@@ -6,6 +6,10 @@ import {
     SendPIDevicesPayload,
     SendPIUsersPayload,
     RegisteredPIInstance,
+
+    User,
+    CreatePIUserPayload,
+    RemovePIUserPayload,
 } from './types';
 
 export function notifyBadProtocol(webClientSocket: WebSocket) {
@@ -16,7 +20,7 @@ export function notifyBadProtocol(webClientSocket: WebSocket) {
     webClientSocket.send(JSON.stringify(body));
 }
 
-export function notifyBadAuthorization(webClientSocket: WebSocket) {
+export function notifyBadAuthorization(webClientSocket: WebSocket): void {
     const body = {
         type: OutboundMessageTypes.BAD_AUTHORIZATION,
     } as OutboundMessage<undefined>;
@@ -24,11 +28,10 @@ export function notifyBadAuthorization(webClientSocket: WebSocket) {
     webClientSocket.send(JSON.stringify(body));
 }
 
-
 export function sendPIDevices(
     webClientSocket: WebSocket, 
     registeredPIInstances: RegisteredPIInstance[],
-) {
+): void {
     const body = {
         type: OutboundMessageTypes.SEND_PI_DEVICES,
         payload: {
@@ -45,7 +48,7 @@ export function sendPIDevices(
 export function sendPIUsers(
     webClientSocket: WebSocket, 
     registeredPIInstance: RegisteredPIInstance,
-) {
+): void {
     const body = {
         type: OutboundMessageTypes.SEND_PI_USERS,
         payload: {
@@ -55,4 +58,32 @@ export function sendPIUsers(
     } as OutboundMessage<SendPIUsersPayload>;
 
     webClientSocket.send(JSON.stringify(body));
+}
+
+export function sendCreatePIUser(
+    PIDeviceSocket: WebSocket,
+    user: User,
+): void {
+    const body = {
+        type: OutboundMessageTypes.CREATE_PI_USER,
+        payload: {
+            user,
+        },
+    } as OutboundMessage<CreatePIUserPayload>;
+
+    PIDeviceSocket.send(JSON.stringify(body));
+}
+
+export function sendRemovePIUser(
+    PIDeviceSocket: WebSocket,
+    userID: number,
+): void {
+    const body = {
+        type: OutboundMessageTypes.SEND_PI_USERS,
+        payload: {
+            userID,
+        },
+    } as OutboundMessage<RemovePIUserPayload>;
+
+    PIDeviceSocket.send(JSON.stringify(body));
 }
