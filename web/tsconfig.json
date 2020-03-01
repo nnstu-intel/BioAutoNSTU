@@ -1,6 +1,7 @@
 {
     "compilerOptions": {
         "outDir": "./dist/",
+        "allowSyntheticDefaultImports": true,
         "sourceMap": true,
         "noImplicitAny": true,
         "strict": true,
@@ -8,8 +9,9 @@
         "target": "es6",
         "jsx": "react",
         "noEmit": true,
+        "baseUrl": "./src",
     },
     "include": [
-        "src/index.ts"
+        "src/index.tsx",
     ]
 }

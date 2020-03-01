@@ -1,9 +1,10 @@
 const path = require('path');
-const HtmlWebpackPlugin = require("html-webpack-plugin");
+const HtmlWebpackPlugin = require('html-webpack-plugin');
+const TsconfigPathsPlugin = require('tsconfig-paths-webpack-plugin');
 
 module.exports = {
     mode: 'development',
-    entry: './src/index.ts',
+    entry: './src/index.tsx',
     devtool: 'inline-source-map',
     devServer: {
         contentBase: path.join(__dirname, 'dist'),
@@ -29,7 +30,6 @@ module.exports = {
                 },
             }, {
                 test: /\.(css|scss)$/,
-                exclude: /node_modules/,
                 use: ['style-loader', {
                     loader: 'css-loader',
                     options: {
@@ -41,6 +41,9 @@ module.exports = {
     },
     resolve: {
         extensions: ['.tsx', '.ts', '.js'],
+        plugins: [
+            new TsconfigPathsPlugin({ configFile: "./tsconfig.json" })
+        ],
     },
     output: {
         filename: 'bundle.js',
@@ -48,7 +51,7 @@ module.exports = {
     },
     plugins: [
         new HtmlWebpackPlugin({
-            template: "./src/index.html",
+            template: './src/index.html',
             inject: false,
         }),
     ],
