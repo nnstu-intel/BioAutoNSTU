@@ -59,7 +59,7 @@ class InMemoryStorage {
         winston.info(`Web client has been registered with ID ${generatedID}`);
     }
 
-    public addPIDevice(piDeviceSocket: WebSocket, name: string, pin: number): void {
+    public addPIDevice(piDeviceSocket: WebSocket, name: string, pin: string): void {
         winston.info(`PI device "${name}" is being registered`);
         if (this.piDevices.get(piDeviceSocket)) {
             throw new Error(`PI device "${name}" registration failed. It has already been registered`);
@@ -230,7 +230,7 @@ export default class MessageHandler {
             name,
         } = message?.payload;
 
-        const valid = typeof(name) === 'string' && typeof(pin) === 'number';
+        const valid = typeof(name) === 'string' && typeof(pin) === 'string';
         if (!valid) {
             throw new Error('Bad message. Data has invalid format for this message type');
         }
@@ -298,7 +298,7 @@ export default class MessageHandler {
             deviceID,
             pin,
         } = message?.payload;
-        const valid = typeof (deviceID) === 'number' && typeof (pin) === 'number';
+        const valid = typeof (deviceID) === 'number' && typeof (pin) === 'string';
         if (!valid) {
             throw new Error('Bad message. Data has invalid format for this message type');
         }

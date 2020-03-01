@@ -37,7 +37,7 @@ export interface WebClient {
 
 export interface PIDevice {
     id: number;
-    pin: number;
+    pin: string;
     name: string;
     users: User[];
     socket: WebSocket;
@@ -45,7 +45,7 @@ export interface PIDevice {
 
 export interface ConnectPIPayload { // InboundMessageTypes.CONNECT_PI
     name: string;
-    pin: number;
+    pin: string;
 }
 
 export interface UpdatePIUsersPayload { // InboundMessageTypes.UPDATE_PI_USERS (without deviceID), // OutboundMessageTypes.UPDATE_PI_USERS
@@ -55,7 +55,7 @@ export interface UpdatePIUsersPayload { // InboundMessageTypes.UPDATE_PI_USERS (
 
 export interface AuthorizeClientPayload { // InboundMessageTypes.AUTHORIZE_CLIENT
     deviceID: number;
-    pin: number;
+    pin: string;
 }
 
 export interface CreatePIUserPayload { // InboundMessageTypes.CREATE_PI_USER, // OutboundMessageTypes.CREATE_PI_USER (without deviceID)
