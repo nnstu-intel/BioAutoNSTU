@@ -1,0 +1,51 @@
+{
+  "name": "communication-server",
+  "version": "1.0.0",
+  "description": "The server is used to making communication between Raspberry PI and Web application",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "webpack --config webpack.config.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bsekachev/nnstu-project.git"
+  },
+  "author": "Boris Sekachev",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/bsekachev/nnstu-project/issues"
+  },
+  "homepage": "https://github.com/bsekachev/nnstu-project#readme",
+  "devDependencies": {
+    "@babel/core": "^7.8.3",
+    "@babel/plugin-proposal-class-properties": "^7.8.3",
+    "@babel/preset-env": "^7.8.3",
+    "@babel/preset-typescript": "^7.8.3",
+    "babel-loader": "^8.0.6",
+    "webpack": "^4.41.5",
+    "webpack-cli": "^3.3.10"
+  },
+  "babel": {
+    "presets": [
+      [
+        "@babel/preset-env",
+        {
+          "targets": {
+            "node": "current"
+          }
+        }
+      ],
+      "@babel/preset-typescript"
+    ],
+    "plugins": [
+      "@babel/plugin-proposal-class-properties"
+    ]
+  },
+  "dependencies": {
+    "@types/winston": "^2.4.4",
+    "@types/ws": "^7.2.0",
+    "winston": "^3.2.1",
+    "ws": "^7.2.1"
+  }
+}
